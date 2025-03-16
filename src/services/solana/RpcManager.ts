@@ -2,6 +2,7 @@ import { AddressLookupTableAccount, Keypair, TransactionInstruction } from '@sol
 import { SolanaManager } from './SolanaManager';
 import { newConnection } from './lib/solana';
 import { Helpers } from '../helpers/Helpers';
+import { MetaplexManager } from './MetaplexManager';
 
 export interface TokenHolder {
     owner: string;
@@ -32,8 +33,8 @@ export class RpcManager {
             const tokens: Asset[] = balances.map((balance) => {
                 return {
                     mint: balance.mint,
-                    symbol: balance.mint,
-                    name: balance.mint,
+                    symbol: balance.symbol || balance.mint,
+                    name: balance.name || balance.mint,
                     decimals: balance.balance.decimals || 0,
                     balance: balance.balance.amount,
                 };

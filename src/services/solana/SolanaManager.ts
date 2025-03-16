@@ -7,6 +7,7 @@ import { RpcManager } from "./RpcManager";
 import { TransactionMessage } from "@solana/web3.js";
 import { Keypair } from "@solana/web3.js";
 import { Helpers } from "../helpers/Helpers";
+import { MetaplexManager } from './MetaplexManager';
 
 export interface CreateTransactionResponse {
     tx: web3.Transaction,
@@ -32,8 +33,8 @@ export class SolanaManager {
     }
     
     static async createSplTransferInstructions(web3Conn: web3.Connection, splTokenMintPublicKey: web3.PublicKey, amount: number, decimals: number, fromPublicKey: web3.PublicKey, toPublicKey: web3.PublicKey, feePayerPublicKey: web3.PublicKey): Promise<web3.TransactionInstruction[]>{
-        const fromTokenAddress = await spl.getAssociatedTokenAddress(splTokenMintPublicKey, fromPublicKey);
-        const toTokenAddress = await spl.getAssociatedTokenAddress(splTokenMintPublicKey, toPublicKey);
+        const fromTokenAddress = await spl.getAssociatedTokenAddress(splTokenMintPublicKey, fromPublicKey, undefined, spl.TOKEN_2022_PROGRAM_ID);
+        const toTokenAddress = await spl.getAssociatedTokenAddress(splTokenMintPublicKey, toPublicKey, undefined, spl.TOKEN_2022_PROGRAM_ID);
         const instructions: web3.TransactionInstruction[] = [];
 
         const instruction1 = await this.getInstrucionToCreateTokenAccount(web3Conn, splTokenMintPublicKey, fromTokenAddress, fromPublicKey, feePayerPublicKey);
@@ -51,7 +52,9 @@ export class SolanaManager {
                 fromTokenAddress, 
                 toTokenAddress, 
                 fromPublicKey, 
-                Math.floor(amount * 10**decimals)
+                Math.floor(amount * 10**decimals),
+                undefined, 
+                spl.TOKEN_2022_PROGRAM_ID
             )
         );
     
@@ -69,8 +72,7 @@ export class SolanaManager {
             tokenAddress,
             walletPublicKey,
             tokenMintPublicKey,
-            spl.TOKEN_PROGRAM_ID,
-            spl.ASSOCIATED_TOKEN_PROGRAM_ID
+            spl.TOKEN_2022_PROGRAM_ID,
         );    
     }  
 
@@ -95,7 +97,7 @@ export class SolanaManager {
                 web3Conn, 
                 tokenAccountAddressPublicKey, 
                 undefined, 
-                spl.TOKEN_PROGRAM_ID
+                spl.TOKEN_2022_PROGRAM_ID
             );
         } catch (error: unknown) {
             if (error instanceof spl.TokenAccountNotFoundError || error instanceof spl.TokenInvalidAccountOwnerError) {
@@ -104,8 +106,8 @@ export class SolanaManager {
                     tokenAccountAddressPublicKey,
                     ownerAddressPublicKey,
                     tokenMintPublicKey,
-                    spl.TOKEN_PROGRAM_ID,
-                    spl.ASSOCIATED_TOKEN_PROGRAM_ID
+                    spl.TOKEN_2022_PROGRAM_ID,
+                    spl.ASSOCIATED_TOKEN_PROGRAM_ID,
                 );
             } else {
                 throw error;
@@ -148,15 +150,16 @@ export class SolanaManager {
         return {amount: 0, uiAmount: 0};
     }
 
-    static async getWalletTokensBalances(web3Conn: web3.Connection, walletAddress: string): Promise<{mint: string, balance: TokenBalance}[]>{
+    static async getWalletTokensBalances(web3Conn: web3.Connection, walletAddress: string): Promise<{mint: string, symbol?: string, name?: string, balance: TokenBalance}[]>{
         try {
             // console.log(new Date(), process.env.SERVER_NAME, 'getWalletTokenBalance', 'walletAddress', walletAddress, 'tokenAddress', tokenAddress);
             const mainWalletPublicKey = new web3.PublicKey(walletAddress);
             const accounts = await web3Conn.getParsedTokenAccountsByOwner(mainWalletPublicKey, { programId: spl.TOKEN_2022_PROGRAM_ID });
 
-            console.log('!accounts', JSON.stringify(accounts));
+            const mints = accounts.value.map((element) => element.account.data.parsed.info.mint);
+            const assets = await MetaplexManager.fetchAllDigitalAssets(mints);
 
-            const balances: {mint: string, balance: TokenBalance}[] = [];
+            const balances: {mint: string, symbol?: string, name?: string, balance: TokenBalance}[] = [];
             for (const element of accounts.value) {
                 if (
                     element.account.data.parsed.info.mint && 
@@ -165,14 +168,23 @@ export class SolanaManager {
                     element.account.data.parsed.info.tokenAmount.decimals &&
                     element.pubkey
                 ){
+                    const mint = element.account.data.parsed.info.mint;
+                    const asset = assets.find((asset) => asset.mint.publicKey == mint);
+                    const symbol = asset ? asset.metadata.symbol : undefined;
+                    const name = asset ? asset.metadata.name : undefined;
+
+                    console.log('!mike', 'mint:', mint, 'symbol:', symbol, 'asset:', asset);
+
                     balances.push({
-                        mint: element.account.data.parsed.info.mint,
+                        mint: mint,
+                        symbol: symbol,
+                        name: name,
                         balance: {
                             amount: +(element.account.data.parsed.info.tokenAmount.amount), 
                             uiAmount: +(element.account.data.parsed.info.tokenAmount.uiAmount),
                             decimals: element.account.data.parsed.info.tokenAmount.decimals,
                             ataPubKey: element.pubkey    
-                        }
+                        },
                     });
                 }
             }
