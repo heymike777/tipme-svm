@@ -43,14 +43,19 @@ export class UserManager {
             return user.wallet.publicKey;
         }
         else {
-            //TODO: create user
-            const newFutureWallet = await FutureWallet.create({
-                telegramUsername: username,
-                isUsed: false,
-                createdAt: now,
-                wallet: SolanaManager.createWallet(),
-            });
-            return newFutureWallet.wallet.publicKey;
+            const futureWallet = await FutureWallet.findOne({ 'telegramUsername': username, isUsed: false });
+            if (futureWallet){
+                return futureWallet.wallet.publicKey;
+            }
+            else {
+                const newFutureWallet = await FutureWallet.create({
+                    telegramUsername: username,
+                    isUsed: false,
+                    createdAt: now,
+                    wallet: SolanaManager.createWallet(),
+                });
+                return newFutureWallet.wallet.publicKey;
+            }
         }
     }
 
