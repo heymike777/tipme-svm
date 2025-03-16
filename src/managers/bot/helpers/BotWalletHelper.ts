@@ -20,7 +20,7 @@ export class BotWalletHelper extends BotHelper {
         console.log('WALLET', 'commandReceived', 'user:', user);
 
         const wallet = user.wallet;
-        ctx.reply(`You wallet public key:\n<code>${wallet.publicKey}</code> (Tap to copy)\n\nYou wallet private key:\n<code>${wallet.privateKey}<code> (Tap to copy)\n\nYou can import it to Backpack or any other wallet that supports Sonic.`, {
+        ctx.reply(`You wallet public key:\n<code>${wallet.publicKey}</code> (Tap to copy)\n\nYou wallet private key:\n<code>${wallet.privateKey}</code> (Tap to copy)\n\nYou can import it to Backpack or any other wallet that supports Sonic.`, {
             parse_mode: 'HTML', 
             link_preview_options: {
                 is_disabled: true
