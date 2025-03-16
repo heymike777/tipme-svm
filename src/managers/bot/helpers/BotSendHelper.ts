@@ -54,7 +54,7 @@ export class BotSendHelper extends BotHelper {
             toWalletAddress = await UserManager.getUserWalletByTelegramUsername(toUser);
         }
         else {
-            this.replyWithError(ctx, `You can only send to Telegram users. Example: "/send 1000 BONK to @heymike777"`);
+            this.replyWithError(ctx, `You can only send to Telegram users. Example: "/send 1 SOL to @heymike777"`);
             return;
         }
 
