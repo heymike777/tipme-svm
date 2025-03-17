@@ -9,7 +9,7 @@ import { BotManager } from "../BotManager";
 
 export class BotSendHelper extends BotHelper {
 
-    kMinSolForFees = 0.005;
+    kMinSolForFees = 0.0025;
 
     constructor() {
         console.log('BotSendHelper', 'constructor');
